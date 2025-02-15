@@ -27,3 +27,11 @@ redis = local.LocalProxy(
         Context,
         "redis")
 )
+
+producer = local.LocalProxy(
+    partial(
+        lookup_context,
+        Context,
+        "producer")
+)
+

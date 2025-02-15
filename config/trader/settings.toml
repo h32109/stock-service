@@ -6,20 +6,15 @@ api_version = "/api/v1"
 url="postgresql+asyncpg://admin:1234@localhost:5432"
 database="stock"
 
-[local.mongodb]
-url="mongodb://42maru:4242@192.168.0.244:27017"
-database="search42"
-
 [local.elasticsearch]
 hosts=["192.168.0.244:9200"]
 log_hosts=["192.168.0.244:9200"]
 
 [local.kafka]
 hosts=["localhost:29092"]
-topic="job"
 send_timeout=100
 metadata_max_age_ms=1000
-index_job_topic_name="search42-index-job"
+order_topic_name="trader-order-job"
 default_chunk_size=1000
 
 [local.redis]

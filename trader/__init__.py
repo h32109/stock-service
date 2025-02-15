@@ -7,6 +7,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 from trader.config import init_config
 from trader.context.db.ctx import SQLContext
+from trader.context.kafka.ctx import KafkaProducerContext
 from trader.context.redis.ctx import RedisContext
 from trader.middleware import DBSessionMiddleware
 from trader.models import get_models
@@ -67,8 +68,12 @@ def setup_context(config):
     SQLContext.init(
         config=config,
         models=get_models(),
-        session_maker_args={"class_": AsyncSession})
+        session_maker_args={"class_": AsyncSession}
+    )
     RedisContext.init(
+        config=config
+    )
+    KafkaProducerContext.init(
         config=config
     )
 
