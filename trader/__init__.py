@@ -7,6 +7,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 from trader.config import init_config
 from trader.context.db.ctx import SQLContext
+from trader.context.elasticsearch.ctx import ElasticsearchContext
 from trader.context.kafka.ctx import KafkaProducerContext
 from trader.context.redis.ctx import RedisContext
 from trader.middleware import DBSessionMiddleware
@@ -76,9 +77,14 @@ def setup_context(config):
     KafkaProducerContext.init(
         config=config
     )
+    ElasticsearchContext.init(
+        config=config
+    )
 
 
 async def start_context():
-    from trader.globals import sql, redis
+    from trader.globals import sql, redis, producer, es
     await sql.start()
     await redis.start()
+    await producer.start()
+    await es.start()

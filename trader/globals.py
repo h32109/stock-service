@@ -35,3 +35,10 @@ producer = local.LocalProxy(
         "producer")
 )
 
+es = local.LocalProxy(
+    partial(
+        lookup_context,
+        Context,
+        "elasticsearch")
+)
+
