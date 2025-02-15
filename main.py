@@ -1,5 +1,5 @@
 from trader import create_app
-from trader.core.config import settings
+from trader.config import init_config
 
 app = create_app()
 
@@ -8,7 +8,7 @@ if __name__ == "__main__":
 
     uvicorn.run(
         "main:app",
-        host=settings.UVICORN_HOST,
-        reload=settings.is_dev(),
-        port=settings.UVICORN_PORT,
+        host="0.0.0.0",
+        reload=init_config().is_dev(),
+        port=8000,
     )

@@ -4,13 +4,14 @@ from trader.service import ServiceBase, Service
 
 
 class StockServiceBase(ServiceBase):
-    settings: t.Any
+    config: t.Any
 
-    async def configuration(self, settings):
-        self.settings = settings
+    async def configuration(self, config):
+        self.config = config
 
 
 class StockService(StockServiceBase):
     pass
+
 
 stock_service = Service.add_service(StockService)

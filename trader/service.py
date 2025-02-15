@@ -3,7 +3,7 @@ import typing as t
 
 
 class ServiceBase:
-    def configuration(self, settings):
+    def configuration(self, config):
         raise NotImplementedError
 
 
@@ -22,11 +22,11 @@ class Service:
         return service
 
     @classmethod
-    async def init(cls, settings):
+    async def init(cls, config):
         coroutines = []
         for svc in cls.__services.values():
             if hasattr(svc, 'configuration') and callable(getattr(svc, 'configuration')):
-                coroutines.append(svc.configuration(settings))
+                coroutines.append(svc.configuration(config))
         await asyncio.gather(*coroutines)
 
     @classmethod

@@ -14,9 +14,16 @@ def lookup_context(ctx: Context, name: str | None = None):
     return getattr(ctx, name, ctx).get(name)
 
 
-postgresql = local.LocalProxy(
+sql = local.LocalProxy(
     partial(
         lookup_context,
         Context,
-        "postgresql")
+        "sql")
+)
+
+redis = local.LocalProxy(
+    partial(
+        lookup_context,
+        Context,
+        "redis")
 )

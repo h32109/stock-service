@@ -72,18 +72,18 @@ class SQLContext(Context):
 
     @classmethod
     def init(cls,
-             settings,
+             config,
              models=None,
              session_maker_args: t.Dict = None):
         cls._connection = create_async_engine(
-            settings.POSTGRESQL_URL + "/" + settings.POSTGRESQL_DATABASE
+            config.POSTGRESQL.URL + "/" + config.POSTGRESQL.DATABASE
         )
 
         session_maker_args = session_maker_args or {}
         cls._session_maker = sessionmaker(bind=cls._connection, **session_maker_args)
 
-        ctx = SQLContext(models, settings)
-        ctx.register("postgresql", ctx)
+        ctx = SQLContext(models, config)
+        ctx.register("sql", ctx)
         return ctx
 
     async def start(self):

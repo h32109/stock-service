@@ -2,7 +2,7 @@ import logging
 
 
 def get_logger():
-    logger = logging.getLogger("postgresql")
+    logger = logging.getLogger("redis")
     logger.setLevel(logging.INFO)
 
     if not logger.handlers:
