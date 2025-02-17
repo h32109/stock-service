@@ -10,6 +10,5 @@ router = fa.APIRouter()
 
 @router.get("/")
 async def search_company_name(
-
 ):
     return "hello world"

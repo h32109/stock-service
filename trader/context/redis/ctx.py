@@ -26,16 +26,17 @@ class RedisContext(Context):
             config,
             **kwargs):
         ctx = RedisContext(config=config)
+        cls._redis = redis.Redis(
+            host=config.REDIS.HOST,
+            port=config.REDIS.PORT,
+            db=config.REDIS.DB,
+            password=config.REDIS.PASSWORD,
+        )
         ctx.register("redis", ctx)
         return ctx
 
     async def start(self):
-        self._redis = redis.Redis(
-            host=self.config.REDIS.HOST,
-            port=self.config.REDIS.PORT,
-            db=self.config.REDIS.DB,
-            password=self.config.REDIS.PASSWORD,
-        )
+        pass
 
     async def shutdown(self):
         self._redis.close()

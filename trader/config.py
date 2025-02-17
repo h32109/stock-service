@@ -25,13 +25,13 @@ def init_config(
     file_path = os.path.join(source_dir, "config", service_name)
 
     os.chdir(file_path)
-    env = get_env("TRADER", "local")
+    env = get_env("TRADER_ENVIRONMENT", "dev")
 
     try:
         conf = dynaconf.Dynaconf(
             preload=[os.path.join(file_path, default_file_name)],
             settings_files=[os.path.join(file_path, file) for file in os.listdir()],
-            environments=["local", "dev", "prod", "test"],
+            environments=["dev", "prod", "test"],
             env=env,
             load_dotenv=False,
             merge_enabled=True,
@@ -39,8 +39,3 @@ def init_config(
     except Exception as e:
         raise AssertionError(f"Failed to load configuration because of \n {e}")
     return conf
-
-
-if __name__ == "__main__":
-    conf = init_config()
-    print(conf.ELASTICSEARCH.HOSTS)

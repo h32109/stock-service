@@ -1,7 +1,7 @@
 import typing as t
 from elasticsearch import AsyncElasticsearch
 from trader.context.base import Context
-from trader.context.elasticsearch.model import ElasticsearchIndex  # 이는 별도로 구현 필요
+from trader.context.elasticsearch.model import ElasticsearchIndex
 
 
 class ElasticsearchContext(Context):
@@ -22,17 +22,20 @@ class ElasticsearchContext(Context):
             config,
             **kwargs):
         ctx = ElasticsearchContext(config=config)
+        cls._es = AsyncElasticsearch(
+            hosts=config.ELASTICSEARCH.HOSTS,
+            basic_auth=(
+                config.ELASTICSEARCH.USERNAME,
+                config.ELASTICSEARCH.PASSWORD
+            ),
+        )
+        assert cls._es
         ctx.register("elasticsearch", ctx)
         return ctx
 
     async def start(self):
-        self._es = AsyncElasticsearch(
-            hosts=self.config.ELASTICSEARCH.HOSTS,
-            # basic_auth=(
-            #     self.config.ELASTICSEARCH.USERNAME,
-            #     self.config.ELASTICSEARCH.PASSWORD
-            # ),
-        )
+        pass
+
 
     async def shutdown(self):
         await self._es.close()
@@ -44,7 +47,7 @@ class ElasticsearchContext(Context):
             **kwargs
         )
 
-    async def get(self, index: ElasticsearchIndex, id: str, **kwargs):
+    async def eget(self, index: ElasticsearchIndex, id: str, **kwargs):
         try:
             result = await self._es.get(
                 index=index.value.format(**kwargs),

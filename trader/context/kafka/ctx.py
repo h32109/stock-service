@@ -8,6 +8,7 @@ ENCODING = "utf-8"
 
 
 class KafkaProducerContext(Context):
+    _producer: t.Optional[aiokafka.AIOKafkaProducer]
 
     def __init__(
             self,
@@ -23,15 +24,14 @@ class KafkaProducerContext(Context):
             **kwargs
     ):
         ctx = KafkaProducerContext(config=config)
+        cls.async_producer = aiokafka.AIOKafkaProducer(
+            bootstrap_servers=config.KAFKA.HOSTS,
+            value_serializer=lambda m: m.json(ensure_ascii=False).encode(ENCODING)
+        )
         ctx.register("producer", ctx)
         return ctx
 
     async def start(self):
-        async_producer = aiokafka.AIOKafkaProducer(
-            bootstrap_servers=self.config.KAFKA.HOSTS,
-            value_serializer=lambda m: m.json(ensure_ascii=False).encode(ENCODING)
-        )
-        self._producer = async_producer
         await self._producer.start()
 
     async def shutdown(self):
