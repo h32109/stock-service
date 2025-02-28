@@ -1,0 +1,7 @@
+[default]
+api_version="/api/v1"
+is_dev=true
+
+[default.logging]
+logger_name="root"
+filepath="../logging.conf"

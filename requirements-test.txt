@@ -1,0 +1,7 @@
+pytest
+factory_boy
+pytest-asyncio
+pytest-cov
+pytest-xdist
+async-asgi-testclient
+starlette[full]

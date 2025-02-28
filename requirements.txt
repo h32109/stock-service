@@ -1,0 +1,58 @@
+# FastAPI and ASGI server
+fastapi
+uvicorn
+gunicorn
+
+# Database
+sqlalchemy[asyncio]
+asyncmy
+werkzeug
+motor
+asyncpg
+pymongo
+
+# Cache and Message Queue
+redis
+aioredis
+kafka-python
+aiokafka
+
+# Search Engine
+elasticsearch
+elasticsearch-dsl
+
+# Utilities
+pydantic
+pydantic-settings
+python-dateutil
+aiohttp
+ujson
+orjson
+toml
+dynaconf
+
+# Authentication & Security
+python-jose
+passlib
+python-multipart
+bcrypt
+python-dotenv
+
+# Development
+black
+isort
+flake8
+mypy
+
+# API Documentation
+pyyaml
+
+# Monitoring and Logging
+python-json-logger
+
+# API Documentation
+pyyaml
+
+# WebSocket
+websockets
+socketio
