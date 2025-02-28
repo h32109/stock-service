@@ -25,12 +25,15 @@ class RedisContext(Context):
             cls,
             config,
             **kwargs):
-        ctx = RedisContext(config=config)
-        cls._redis = redis.Redis(
+        _redis = redis.Redis(
             host=config.REDIS.HOST,
             port=config.REDIS.PORT,
             db=config.REDIS.DB,
             password=config.REDIS.PASSWORD,
+        )
+        ctx = RedisContext(
+            config=config,
+            redis=_redis
         )
         ctx.register("redis", ctx)
         return ctx

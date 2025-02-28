@@ -75,6 +75,7 @@ class SQLContext(Context):
              config,
              models=None,
              session_maker_args: t.Dict = None):
+
         cls._connection = create_async_engine(
             config.POSTGRESQL.URL + "/" + config.POSTGRESQL.DATABASE
         )

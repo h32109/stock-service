@@ -21,21 +21,22 @@ class ElasticsearchContext(Context):
             cls,
             config,
             **kwargs):
-        ctx = ElasticsearchContext(config=config)
-        cls._es = AsyncElasticsearch(
+        es = AsyncElasticsearch(
             hosts=config.ELASTICSEARCH.HOSTS,
             basic_auth=(
                 config.ELASTICSEARCH.USERNAME,
                 config.ELASTICSEARCH.PASSWORD
             ),
         )
-        assert cls._es
+        ctx = ElasticsearchContext(
+            config=config,
+            elasticsearch=es
+        )
         ctx.register("elasticsearch", ctx)
         return ctx
 
     async def start(self):
         pass
-
 
     async def shutdown(self):
         await self._es.close()

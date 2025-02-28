@@ -23,10 +23,13 @@ class KafkaProducerContext(Context):
             config,
             **kwargs
     ):
-        ctx = KafkaProducerContext(config=config)
-        cls.async_producer = aiokafka.AIOKafkaProducer(
+        producer =aiokafka.AIOKafkaProducer(
             bootstrap_servers=config.KAFKA.HOSTS,
             value_serializer=lambda m: m.json(ensure_ascii=False).encode(ENCODING)
+        )
+        ctx = KafkaProducerContext(
+            config=config,
+            producer=producer
         )
         ctx.register("producer", ctx)
         return ctx
