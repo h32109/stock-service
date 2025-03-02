@@ -1,5 +1,6 @@
 import typing as t
 from contextvars import ContextVar
+from functools import wraps
 
 from sqlalchemy.ext.asyncio import (
     create_async_engine,
@@ -43,15 +44,15 @@ class Session:
 
 
 class SQLContext(Context):
-    settings: t.Any
+    config: t.Any
     _models: t.Any
     _connection: t.Optional[AsyncEngine]
     _session_maker: t.Optional[sessionmaker]
     _session: ContextVar[t.Optional[AsyncSession]] = ContextVar("_session", default=None)
 
-    def __init__(self, models, settings):
+    def __init__(self, models, config):
         super().__init__()
-        self.settings = settings
+        self.config = config
         self._models = models or []
 
     @property
@@ -94,3 +95,4 @@ class SQLContext(Context):
 
     async def shutdown(self):
         pass
+

@@ -30,6 +30,8 @@ ujson
 orjson
 toml
 dynaconf
+celery
+hgtk
 
 # Authentication & Security
 python-jose

@@ -1,5 +1,6 @@
 import typing as t
 from pathlib import Path
+import hgtk
 
 
 def get_path_from_root(path: t.Union[str, Path]) -> Path:
@@ -15,3 +16,9 @@ def get_files_recursive(path: t.Union[str, Path]) -> t.List[Path]:
     if path.is_file():
         return [path]
     return [file for file in path.rglob('*') if file.is_file()]
+
+
+def extract_initial_sound(text):
+    if not text:
+        return ""
+    return ''.join([hgtk.letter.decompose(char)[0] if hgtk.checker.is_hangul(char) else char for char in text])

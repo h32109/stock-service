@@ -1,4 +1,4 @@
-from functools import partial
+from functools import partial, wraps
 from werkzeug import local
 
 from sqlalchemy.orm import declarative_base
@@ -42,3 +42,12 @@ es = local.LocalProxy(
         "elasticsearch")
 )
 
+
+def transaction(func):
+    @wraps(func)
+    async def _tr(*args, **kwargs):
+        async with sql.run_session(commit_on_exit=True):
+            response = await func(*args, **kwargs)
+        return response
+
+    return _tr
