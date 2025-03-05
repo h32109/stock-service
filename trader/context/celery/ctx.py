@@ -107,7 +107,6 @@ class CeleryContext(Context):
         )
 
     async def get_access_token(self) -> str:
-        """접근 토큰 발급 또는 캐시된 토큰 반환"""
         now = datetime.now()
 
         if not self._access_token or not self._token_expire_time or now >= self._token_expire_time:
