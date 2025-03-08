@@ -1,0 +1,332 @@
+openapi: 3.0.0
+info:
+  title: 주식 정보 API
+  description: 주식 종목 검색 및 상세 정보 조회를 위한 API
+  version: 1.0.0
+servers:
+  - url: /api/v1
+    description: API 서버
+
+paths:
+  /stocks:
+    get:
+      summary: 주식 종목 검색
+      description: 회사명, 초성, 종목코드, 테마명 등을 이용하여 주식 종목을 검색합니다.
+      tags:
+        - stocks
+      parameters:
+        - name: q
+          in: query
+          description: 검색어 (회사명, 초성, 종목코드, 테마명)
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 20
+        - name: page
+          in: query
+          description: 페이지 번호
+          required: false
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: size
+          in: query
+          description: 페이지 크기
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: 검색 결과
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+        '400':
+          description: 잘못된 요청
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 서버 오류
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /stocks/{stock_id}:
+    get:
+      summary: 주식 종목 상세 정보 조회
+      description: 특정 주식 종목의 상세 정보를 조회합니다.
+      tags:
+        - stocks
+      parameters:
+        - name: stock_id
+          in: path
+          description: 주식 종목 코드
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 종목 상세 정보
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailResponse'
+        '400':
+          description: 잘못된 요청 또는 존재하지 않는 종목
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 서버 오류
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    IndustryResponse:
+      type: object
+      properties:
+        code:
+          type: string
+          description: 산업 코드
+        name:
+          type: string
+          description: 산업명
+      required:
+        - code
+        - name
+
+    ThemeResponse:
+      type: object
+      properties:
+        large:
+          $ref: '#/components/schemas/IndustryResponse'
+          description: 대분류 산업
+          nullable: true
+        medium:
+          $ref: '#/components/schemas/IndustryResponse'
+          description: 중분류 산업
+          nullable: true
+        small:
+          $ref: '#/components/schemas/IndustryResponse'
+          description: 소분류 산업
+          nullable: true
+
+    StockSearchResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: 종목 코드
+        company_name:
+          type: string
+          description: 회사명
+        company_name_en:
+          type: string
+          description: 회사명(영문)
+        company_name_initial:
+          type: string
+          description: 회사명 초성
+        security_type:
+          type: string
+          description: 증권 유형
+          enum: [STOCK, ETF, ETN, ELW, BOND]
+        market_type:
+          type: string
+          description: 시장 유형
+          enum: [KOSPI, KOSDAQ, KONEX]
+        current_price:
+          type: number
+          format: float
+          description: 현재가
+        price_change:
+          type: number
+          format: float
+          description: 가격 변동
+        volume:
+          type: integer
+          description: 거래량
+        market_cap:
+          type: number
+          format: float
+          description: 시가총액
+        themes:
+          type: array
+          description: 산업 분류 테마 목록
+          items:
+            $ref: '#/components/schemas/ThemeResponse'
+        match_type:
+          type: array
+          description: 검색 일치 유형
+          items:
+            type: string
+            enum: [code, initial, industry, large_industry, medium_industry, small_industry, name]
+      required:
+        - id
+        - company_name
+        - company_name_en
+        - company_name_initial
+        - security_type
+        - market_type
+        - current_price
+        - price_change
+        - volume
+        - market_cap
+        - themes
+        - match_type
+
+    SearchResponseData:
+      type: object
+      properties:
+        stocks:
+          type: array
+          items:
+            $ref: '#/components/schemas/StockSearchResponse'
+          description: 주식 검색 결과 목록
+        total_count:
+          type: integer
+          description: 총 검색 결과 수
+      required:
+        - stocks
+        - total_count
+
+    SearchResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/SearchResponseData'
+      required:
+        - data
+
+    StockDetailResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: 종목 코드
+        company_name:
+          type: string
+          description: 회사명
+        company_name_en:
+          type: string
+          description: 회사명(영문)
+        company_name_initial:
+          type: string
+          description: 회사명 초성
+        listing_date:
+          type: string
+          format: date
+          description: 상장일
+        market_type:
+          type: string
+          description: 시장 유형
+          enum: [KOSPI, KOSDAQ, KONEX]
+        security_type:
+          type: string
+          description: 증권 유형
+        industry_code:
+          type: string
+          description: 산업 코드
+        is_active:
+          type: boolean
+          description: 활성화 여부
+        current_price:
+          type: number
+          format: float
+          description: 현재가
+        previous_price:
+          type: number
+          format: float
+          description: 전일 종가
+        open_price:
+          type: number
+          format: float
+          description: 시가
+        high_price:
+          type: number
+          format: float
+          description: 고가
+        low_price:
+          type: number
+          format: float
+          description: 저가
+        volume:
+          type: integer
+          description: 거래량
+        price_change:
+          type: number
+          format: float
+          description: 가격 변동
+        market_cap:
+          type: number
+          format: float
+          description: 시가총액
+        shares_outstanding:
+          type: integer
+          description: 발행주식수
+        trading_date:
+          type: string
+          format: date-time
+          description: 거래일자
+        themes:
+          type: array
+          description: 산업 분류 테마 목록
+          items:
+            $ref: '#/components/schemas/ThemeResponse'
+      required:
+        - id
+        - company_name
+        - company_name_en
+        - company_name_initial
+        - listing_date
+        - market_type
+        - security_type
+        - industry_code
+        - is_active
+        - current_price
+        - previous_price
+        - open_price
+        - high_price
+        - low_price
+        - volume
+        - price_change
+        - market_cap
+        - shares_outstanding
+        - trading_date
+        - themes
+
+    DetailResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/StockDetailResponse'
+      required:
+        - data
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+          description: 에러 코드
+        message:
+          type: string
+          description: 에러 메시지
+        details:
+          type: object
+          description: 추가 에러 정보
+      required:
+        - code
+        - message
