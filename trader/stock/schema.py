@@ -6,7 +6,6 @@ from datetime import date
 class IndustryResponse(BaseModel):
     code: str
     name: str
-    type: str  # 'large', 'medium', 'small' 중 하나
 
 
 class ThemeResponse(BaseModel):

@@ -41,9 +41,8 @@ def create_app() -> FastAPI:
 
 
 def setup_routers(app: FastAPI):
-    api_router, view_router = create_routers()
+    api_router = create_routers()
     app.include_router(api_router)
-    app.include_router(view_router)
 
 
 def setup_middlewares(app):

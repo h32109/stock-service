@@ -29,6 +29,7 @@ def get_service():
 
 @pytest.fixture(scope="session")
 def sql_ctx(app):
+    sql.set_session()
     yield sql
 
 

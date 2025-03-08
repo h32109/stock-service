@@ -83,9 +83,9 @@ class StockService(StockServiceBase):
 
         for small_ind, medium_ind, large_ind in results:
             theme = ThemeResponse(
-                large=IndustryResponse(code=large_ind.code, name=large_ind.name, type="large"),
-                medium=IndustryResponse(code=medium_ind.code, name=medium_ind.name, type="medium"),
-                small=IndustryResponse(code=small_ind.code, name=small_ind.name, type="small")
+                large=IndustryResponse(code=large_ind.code, name=large_ind.namz),
+                medium=IndustryResponse(code=medium_ind.code, name=medium_ind.name),
+                small=IndustryResponse(code=small_ind.code, name=small_ind.name)
             )
 
             theme_results.append(theme)
