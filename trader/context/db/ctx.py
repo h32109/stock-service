@@ -1,6 +1,5 @@
 import typing as t
 from contextvars import ContextVar
-from functools import wraps
 
 from sqlalchemy.ext.asyncio import (
     create_async_engine,
@@ -27,7 +26,9 @@ class Session:
         self.commit_on_exit = commit_on_exit
 
     async def __aenter__(self):
-        self.token = self.session.set(self.session_maker(**self.session_args))
+        sess = self.session.get()
+        if not sess:
+            self.token = self.session.set(self.session_maker(**self.session_args))
         return type(self)
 
     async def __aexit__(self, exc_type, exc_value, traceback):
@@ -40,7 +41,8 @@ class Session:
 
         await sess.close()
 
-        self.session.reset(self.token)
+        if self.token:
+            self.session.reset(self.token)
 
 
 class SQLContext(Context):
@@ -59,6 +61,10 @@ class SQLContext(Context):
     def session(self) -> AsyncSession:
         session = self._session.get()
         return session
+
+    def set_session(self, session_args: t.Dict = None,):
+        session_args = session_args or {}
+        self._session.set(self._session_maker(**session_args))
 
     def run_session(
             self,
