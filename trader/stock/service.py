@@ -1,7 +1,7 @@
 import typing as t
 
 import hgtk
-from sqlalchemy import or_, and_
+from sqlalchemy import or_, and_, select, text
 
 from trader.exceptions import InvalidStockError
 from trader.service import ServiceBase, Service
@@ -60,11 +60,12 @@ class StockService(StockServiceBase):
         return has_korean_initial and is_valid_query
 
     @staticmethod
-    def get_themes_for_stock(stock_id: str) -> t.List[ThemeResponse]:
+    async def get_themes_for_stock(stock_id: str) -> t.List[ThemeResponse]:
         """
         주식의 산업분류를 계층 구조로 가져옴 (대-중-소 연결)
         """
-        results = sql.session.query(
+        # AsyncSession에 맞게 쿼리 수정
+        stmt = select(
             SmallIndustry, MediumIndustry, LargeIndustry
         ).join(
             stock_small_industry_mapping,
@@ -77,13 +78,17 @@ class StockService(StockServiceBase):
         ).join(
             LargeIndustry,
             MediumIndustry.large_industry_code == LargeIndustry.code
-        ).all()
+        )
+
+        # 쿼리 실행 및 결과 추출
+        result = await sql.session.execute(stmt)
+        results = result.all()
 
         theme_results = []
 
         for small_ind, medium_ind, large_ind in results:
             theme = ThemeResponse(
-                large=IndustryResponse(code=large_ind.code, name=large_ind.namz),
+                large=IndustryResponse(code=large_ind.code, name=large_ind.name),
                 medium=IndustryResponse(code=medium_ind.code, name=medium_ind.name),
                 small=IndustryResponse(code=small_ind.code, name=small_ind.name)
             )
@@ -95,11 +100,13 @@ class StockService(StockServiceBase):
     async def search(self, query: str, page: int, size: int):
         # 종목코드 검색
         if self.is_stock_code(query):
-            stocks_with_prices = sql.session.query(Stock, StockPrice) \
+            stmt = select(Stock, StockPrice) \
                 .join(StockPrice, Stock.id == StockPrice.stock_id) \
                 .filter(Stock.id.like(f"{query}%")) \
-                .order_by(StockPrice.market_cap.desc()) \
-                .all()
+                .order_by(StockPrice.market_cap.desc())
+
+            result = await sql.session.execute(stmt)
+            stocks_with_prices = result.all()
 
             total_count = len(stocks_with_prices)
             search_type = "code"
@@ -123,72 +130,89 @@ class StockService(StockServiceBase):
             if english_part:
                 conditions.append(Stock.company_name_en.ilike(f"{english_part}%"))
 
-            stocks_with_prices = sql.session.query(Stock, StockPrice) \
+            stmt = select(Stock, StockPrice) \
                 .join(StockPrice, Stock.id == StockPrice.stock_id) \
                 .filter(and_(*conditions)) \
-                .order_by(StockPrice.market_cap.desc()) \
-                .all()
+                .order_by(StockPrice.market_cap.desc())
+
+            result = await sql.session.execute(stmt)
+            stocks_with_prices = result.all()
 
             total_count = len(stocks_with_prices)
             search_type = "initial"
 
         else:
             # 대분류 산업 검색
-            large_industry_stock_ids = sql.session.query(Stock.id) \
+            stmt = select(Stock.id) \
                 .join(stock_large_industry_mapping, Stock.id == stock_large_industry_mapping.c.stock_id) \
                 .join(LargeIndustry, LargeIndustry.code == stock_large_industry_mapping.c.large_industry_code) \
-                .filter(LargeIndustry.name.like(f"%{query}%")) \
-                .all()
+                .filter(LargeIndustry.name.like(f"%{query}%"))
+
+            result = await sql.session.execute(stmt)
+            large_industry_stock_ids = result.scalars().all()
 
             if large_industry_stock_ids:
-                stocks_with_prices = sql.session.query(Stock, StockPrice) \
+                stmt = select(Stock, StockPrice) \
                     .join(StockPrice, Stock.id == StockPrice.stock_id) \
-                    .filter(Stock.id.in_([id[0] for id in large_industry_stock_ids])) \
+                    .filter(Stock.id.in_(large_industry_stock_ids)) \
                     .order_by(StockPrice.market_cap.desc()) \
-                    .limit(10) \
-                    .all()
+                    .limit(10)
+
+                result = await sql.session.execute(stmt)
+                stocks_with_prices = result.all()
 
                 total_count = len(large_industry_stock_ids)
                 search_type = "large_industry"
 
             else:
-                medium_industry_stock_ids = sql.session.query(Stock.id) \
+                # 중분류 산업 검색
+                stmt = select(Stock.id) \
                     .join(stock_medium_industry_mapping, Stock.id == stock_medium_industry_mapping.c.stock_id) \
                     .join(MediumIndustry, MediumIndustry.code == stock_medium_industry_mapping.c.medium_industry_code) \
-                    .filter(MediumIndustry.name.like(f"%{query}%")) \
-                    .all()
+                    .filter(MediumIndustry.name.like(f"%{query}%"))
+
+                result = await sql.session.execute(stmt)
+                medium_industry_stock_ids = result.scalars().all()
 
                 if medium_industry_stock_ids:
-                    stocks_with_prices = sql.session.query(Stock, StockPrice) \
+                    stmt = select(Stock, StockPrice) \
                         .join(StockPrice, Stock.id == StockPrice.stock_id) \
-                        .filter(Stock.id.in_([id[0] for id in medium_industry_stock_ids])) \
+                        .filter(Stock.id.in_(medium_industry_stock_ids)) \
                         .order_by(StockPrice.market_cap.desc()) \
-                        .limit(10) \
-                        .all()
+                        .limit(10)
+
+                    result = await sql.session.execute(stmt)
+                    stocks_with_prices = result.all()
 
                     total_count = len(medium_industry_stock_ids)
                     search_type = "medium_industry"
 
                 else:
-                    small_industry_stock_ids = sql.session.query(Stock.id) \
+                    # 소분류 산업 검색
+                    stmt = select(Stock.id) \
                         .join(stock_small_industry_mapping, Stock.id == stock_small_industry_mapping.c.stock_id) \
                         .join(SmallIndustry, SmallIndustry.code == stock_small_industry_mapping.c.small_industry_code) \
-                        .filter(SmallIndustry.name.like(f"%{query}%")) \
-                        .all()
+                        .filter(SmallIndustry.name.like(f"%{query}%"))
+
+                    result = await sql.session.execute(stmt)
+                    small_industry_stock_ids = result.scalars().all()
 
                     if small_industry_stock_ids:
-                        stocks_with_prices = sql.session.query(Stock, StockPrice) \
+                        stmt = select(Stock, StockPrice) \
                             .join(StockPrice, Stock.id == StockPrice.stock_id) \
-                            .filter(Stock.id.in_([id[0] for id in small_industry_stock_ids])) \
+                            .filter(Stock.id.in_(small_industry_stock_ids)) \
                             .order_by(StockPrice.market_cap.desc()) \
-                            .limit(10) \
-                            .all()
+                            .limit(10)
+
+                        result = await sql.session.execute(stmt)
+                        stocks_with_prices = result.all()
 
                         total_count = len(small_industry_stock_ids)
                         search_type = "small_industry"
 
                     else:
-                        stocks_with_prices = sql.session.query(Stock, StockPrice) \
+                        # 회사명 검색
+                        stmt = select(Stock, StockPrice) \
                             .join(StockPrice, Stock.id == StockPrice.stock_id) \
                             .filter(
                             or_(
@@ -196,8 +220,10 @@ class StockService(StockServiceBase):
                                 Stock.company_name_en.like(f"%{query}%")
                             )
                         ) \
-                            .order_by(StockPrice.market_cap.desc()) \
-                            .all()
+                            .order_by(StockPrice.market_cap.desc())
+
+                        result = await sql.session.execute(stmt)
+                        stocks_with_prices = result.all()
 
                         total_count = len(stocks_with_prices)
                         search_type = "company_name"
@@ -211,7 +237,7 @@ class StockService(StockServiceBase):
 
         results = []
         for stock, price in stocks_with_prices_paginated:
-            themes = self.get_themes_for_stock(stock.id)
+            themes = await self.get_themes_for_stock(stock.id)
 
             # 매치 타입 결정
             if search_type == "code":
@@ -242,12 +268,14 @@ class StockService(StockServiceBase):
         return results, total_count
 
     async def get_stock(self, stock_id):
-        result = sql.session.query(Stock, StockPrice) \
+        stmt = select(Stock, StockPrice) \
             .join(StockPrice, Stock.id == StockPrice.stock_id) \
-            .filter(Stock.id == stock_id) \
-            .first()
+            .filter(Stock.id == stock_id)
 
-        if not result:
+        result = await sql.session.execute(stmt)
+        result_row = result.first()
+
+        if not result_row:
             raise InvalidStockError(
                 "Invalid stock",
                 {
@@ -255,9 +283,9 @@ class StockService(StockServiceBase):
                 }
             )
 
-        stock, price = result
+        stock, price = result_row
 
-        themes = self.get_themes_for_stock(stock.id)
+        themes = await self.get_themes_for_stock(stock.id)
 
         # 주식 산업 코드 - 소분류 산업 코드 사용
         industry_code = stock.id

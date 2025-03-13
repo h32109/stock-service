@@ -41,7 +41,8 @@ class Session:
 
         await sess.close()
 
-        self.session.reset(self.token)
+        if self.token:
+            self.session.reset(self.token)
 
 
 class SQLContext(Context):

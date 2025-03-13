@@ -71,10 +71,13 @@ async def test_send_single_chunk(kafka_context, mock_producer, mock_data):
 
 @pytest.mark.asyncio
 async def test_send_no_key(kafka_context, mock_producer, mock_data):
+    # Given
     topic = "test-topic"
 
+    # When
     await kafka_context.send(topic=topic, data=mock_data)
 
+    # Then
     mock_producer.send.assert_called_once_with(
         topic=topic,
         key=None,
@@ -84,6 +87,7 @@ async def test_send_no_key(kafka_context, mock_producer, mock_data):
 
 @pytest.mark.asyncio
 async def test_send_multiple_chunks(kafka_context, mock_producer):
+    # Given
     topic = "test-topic"
     key = "test-key"
     chunk_size = 2
@@ -104,8 +108,10 @@ async def test_send_multiple_chunks(kafka_context, mock_producer):
 
     data_mock.chunk = mock_multi_chunk
 
+    # When
     await kafka_context.send(topic=topic, data=data_mock, key=key, chunk_size=chunk_size)
 
+    # Then
     assert mock_producer.send.call_count == 3
 
     for i, chunk_data in enumerate(chunks):

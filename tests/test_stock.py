@@ -1,239 +1,242 @@
 import pytest
-from unittest.mock import AsyncMock, patch
-from datetime import date
-from decimal import Decimal
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from trader.stock.schema import (
-    ThemeResponse,
-    StockSearchResponse,
-    StockDetailResponse,
-    IndustryResponse
-)
-from trader.stock.service import StockService
 from trader.exceptions import InvalidStockError
-from trader.stock.model import (
-    Stock, StockPrice, SmallIndustry, MediumIndustry, LargeIndustry,
-)
+from trader.stock.service import stock_service
+from tests.factories import StockTestDataFactory
 
 
-@pytest.fixture
-def mock_stock():
-    return Stock(
-        id="005930",
-        company_name="삼성전자",
-        company_name_en="Samsung Electronics",
-        company_name_initial="ㅅㅅㅈㅈ",
-        listing_date=date(1975, 6, 11),
-        market_type="KOSPI",
-        security_type="보통주",
-        is_active=True,
-        shares_outstanding=5969782550
-    )
+@pytest.fixture(scope="module")
+async def test_db_setup(sql_ctx):
+    async with sql_ctx.run_session(commit_on_exit=True):
+        test_data = await StockTestDataFactory.create_full_test_data(sql_ctx.session)
+        yield test_data
+
+    async with sql_ctx.run_session(commit_on_exit=True):
+        await StockTestDataFactory.cleanup_all_data(sql_ctx.session)
 
 
-@pytest.fixture
-def mock_stock_price():
-    return StockPrice(
-        id=1,
-        stock_id="005930",
-        trading_date=date(2023, 7, 15),
-        current_price=Decimal("70000.00"),
-        previous_price=Decimal("69000.00"),
-        open_price=Decimal("69500.00"),
-        high_price=Decimal("70500.00"),
-        low_price=Decimal("69000.00"),
-        volume=12750000,
-        price_change=Decimal("1000.00"),
-        market_cap=Decimal("4.1788477850e+14")
-    )
+@pytest.mark.asyncio
+async def test_service_is_stock_code():
+    assert stock_service.is_stock_code("123456") == True
+    assert stock_service.is_stock_code("12345") == True
+    assert stock_service.is_stock_code("1234567") == False
+    assert stock_service.is_stock_code("ABC123") == False
 
 
-@pytest.fixture
-def mock_industries():
-    small_ind = SmallIndustry(
-        code="C2611",
-        name="반도체 제조업",
-        medium_industry_code="C26"
-    )
-
-    medium_ind = MediumIndustry(
-        code="C26",
-        name="전자부품 제조업",
-        large_industry_code="C"
-    )
-
-    large_ind = LargeIndustry(
-        code="C",
-        name="제조업"
-    )
-
-    return {"small": small_ind, "medium": medium_ind, "large": large_ind}
+@pytest.mark.asyncio
+async def test_service_is_initial():
+    assert stock_service.is_initial("ㅅㅅㅈㅈ") == True
+    assert stock_service.is_initial("ㅅㅅA") == True
+    assert stock_service.is_initial("Aㅅㅅ") == True
+    assert stock_service.is_initial("삼성") == False
+    assert stock_service.is_initial("123") == False
 
 
-@pytest.fixture
-def mock_theme(mock_industries):
-    return ThemeResponse(
-        large=IndustryResponse(code=mock_industries["large"].code, name=mock_industries["large"].name),
-        medium=IndustryResponse(code=mock_industries["medium"].code, name=mock_industries["medium"].name),
-        small=IndustryResponse(code=mock_industries["small"].code, name=mock_industries["small"].name)
-    )
+@pytest.mark.asyncio
+async def test_service_search_by_code(test_db_setup):
+    # Given
+    stock_id = test_db_setup["tech_stocks"][0]["stock"].id
+
+    # When
+    stocks, total = await stock_service.search(query=stock_id, page=1, size=10)
+
+    # Then
+    assert len(stocks) == 1
+    assert stocks[0].id == stock_id
+    assert "code" in stocks[0].match_type
+    assert total == 1
 
 
-@pytest.fixture
-def mock_search_response(mock_theme):
-    return StockSearchResponse(
-        id="005930",
-        company_name="삼성전자",
-        company_name_en="Samsung Electronics",
-        company_name_initial="ㅅㅅㅈㅈ",
-        security_type="보통주",
-        market_type="KOSPI",
-        current_price=70000.00,
-        price_change=1000.00,
-        volume=12750000,
-        market_cap=417884778500000.00,
-        themes=[mock_theme],
-        match_type=["name"]
-    )
+@pytest.mark.asyncio
+async def test_service_search_by_partial_code(test_db_setup):
+    # Given
+    first_digit = test_db_setup["tech_stocks"][0]["stock"].id[0]
+
+    # When
+    stocks, total = await stock_service.search(query=first_digit, page=1, size=10)
+
+    # Then
+    assert len(stocks) > 0
+    for stock in stocks:
+        assert stock.id.startswith(first_digit)
 
 
-@pytest.fixture
-def mock_detail_response(mock_theme):
-    return StockDetailResponse(
-        id="005930",
-        company_name="삼성전자",
-        company_name_en="Samsung Electronics",
-        company_name_initial="ㅅㅅㅈㅈ",
-        listing_date=date(1975, 6, 11),
-        market_type="KOSPI",
-        security_type="보통주",
-        industry_code="C2611",
-        is_active=True,
-        current_price=70000.00,
-        previous_price=69000.00,
-        open_price=69500.00,
-        high_price=70500.00,
-        low_price=69000.00,
-        volume=12750000,
-        price_change=1000.00,
-        market_cap=417884778500000.00,
-        shares_outstanding=5969782550,
-        trading_date="2023-07-15T09:00:00Z",
-        themes=[mock_theme]
-    )
+@pytest.mark.asyncio
+async def test_service_search_by_company_name(test_db_setup):
+    # Given
+    company_name = test_db_setup["tech_stocks"][0]["stock"].company_name
+
+    # When
+    stocks, total = await stock_service.search(query=company_name, page=1, size=10)
+
+    # Then
+    assert len(stocks) == 1
+    assert stocks[0].company_name == company_name
+    assert "name" in stocks[0].match_type
 
 
-@pytest.fixture
-async def mock_async_session(sql_ctx):
-    original_session = sql_ctx._session.get()
+@pytest.mark.asyncio
+async def test_service_search_by_initial(test_db_setup):
+    # When
+    stocks, total = await stock_service.search(query="ㅌㅅ", page=1, size=10)
 
-    mock_session = AsyncMock(spec=AsyncSession)
-
-    def setup_query_chain(mock_session_obj):
-        mock_query = AsyncMock()
-        mock_query.join.return_value = mock_query
-        mock_query.filter.return_value = mock_query
-        mock_query.order_by.return_value = mock_query
-        mock_query.all.return_value = []
-        mock_query.first.return_value = None
-
-        mock_session_obj.query = AsyncMock(return_value=mock_query)
-        mock_session_obj.execute = AsyncMock()
-
-        return mock_query
-
-    mock_query = setup_query_chain(mock_session)
-
-    sql_ctx._session.set(mock_session)
-
-    yield mock_session
-
-    sql_ctx._session.set(original_session)
+    # Then
+    assert len(stocks) > 0
+    assert "initial" in stocks[0].match_type
 
 
-class TestStockService:
+@pytest.mark.asyncio
+async def test_service_search_by_english_name(test_db_setup):
+    # When
+    stocks, total = await stock_service.search(query="Tech", page=1, size=10)
 
-    @pytest.fixture
-    def service_instance(self, get_service):
-        stock_service = get_service("StockService")
-        return stock_service
+    # Then
+    assert len(stocks) > 0
+    found = False
+    for stock in stocks:
+        if "Tech" in stock.company_name_en:
+            found = True
+            break
+    assert found
 
-    def test_is_stock_code(self):
-        assert StockService.is_stock_code("005930") == True
-        assert StockService.is_stock_code("12345") == True
-        assert StockService.is_stock_code("123456") == True
-        assert StockService.is_stock_code("1234567") == False
-        assert StockService.is_stock_code("abcde") == False
-        assert StockService.is_stock_code("123ab") == False
 
-    def test_is_initial(self):
-        assert StockService.is_initial("ㅅㅅ") == True
-        assert StockService.is_initial("ㅅㅅㅈㅈ") == True
-        assert StockService.is_initial("ㅅs") == True
-        assert StockService.is_initial("Sㅅ") == True
-        assert StockService.is_initial("삼성") == False
-        assert StockService.is_initial("Samsung") == False
+@pytest.mark.asyncio
+async def test_service_search_by_industry(test_db_setup):
+    # When
+    stocks, total = await stock_service.search(query="소프트웨어", page=1, size=10)
 
-    @pytest.mark.asyncio
-    async def test_get_themes_for_stock(self, mock_async_session, mock_industries):
-        mock_query_result = [(
-            mock_industries["small"],
-            mock_industries["medium"],
-            mock_industries["large"]
-        )]
+    # Then
+    assert len(stocks) > 0
+    assert "industry" in stocks[0].match_type
 
-        mock_result = AsyncMock()
-        mock_result.all.return_value = mock_query_result
-        mock_async_session.execute.return_value = mock_result
+    assert len(stocks[0].themes) > 0
+    found = False
+    for theme in stocks[0].themes:
+        if theme.medium and "소프트웨어" in theme.medium.name:
+            found = True
+            break
+    assert found
 
-        with patch('trader.stock.service.StockService.get_themes_for_stock', return_value=[
-            ThemeResponse(
-                large=IndustryResponse(code=mock_industries["large"].code, name=mock_industries["large"].name),
-                medium=IndustryResponse(code=mock_industries["medium"].code, name=mock_industries["medium"].name),
-                small=IndustryResponse(code=mock_industries["small"].code, name=mock_industries["small"].name)
-            )
-        ]):
-            service = StockService()
-            result = service.get_themes_for_stock("005930")
 
-            assert len(result) == 1
-            assert result[0].large.code == "C"
-            assert result[0].medium.code == "C26"
-            assert result[0].small.code == "C2611"
+@pytest.mark.asyncio
+async def test_service_search_pagination(test_db_setup):
+    # When
+    all_stocks, total_count = await stock_service.search(query="회사", page=1, size=10)
 
-    @pytest.mark.asyncio
-    async def test_search_by_code(self, service_instance, mock_async_session, mock_stock, mock_stock_price, mock_theme):
-        mock_result = AsyncMock()
-        mock_result.all.return_value = [(mock_stock, mock_stock_price)]
-        mock_async_session.execute.return_value = mock_result
+    # 페이지 크기를 1로 설정하고 첫 페이지 조회
+    first_page, _ = await stock_service.search(query="회사", page=1, size=1)
 
-        with patch.object(service_instance, 'get_themes_for_stock', return_value=[mock_theme]):
-            results, total_count = await service_instance.search("005930", 1, 20)
+    # 페이지 크기를 1로 설정하고 두번째 페이지 조회
+    if total_count > 1:
+        second_page, _ = await stock_service.search(query="회사", page=2, size=1)
 
-            assert len(results) == 1
-            assert results[0].id == "005930"
-            assert results[0].company_name == "삼성전자"
-            assert "code" in results[0].match_type
+        # Then
+        assert first_page[0].id != second_page[0].id
 
-    @pytest.mark.asyncio
-    async def test_get_stock(self, service_instance, mock_async_session, mock_stock, mock_stock_price, mock_theme):
-        mock_result = AsyncMock()
-        mock_result.first.return_value = (mock_stock, mock_stock_price)
-        mock_async_session.execute.return_value = mock_result
+    # Then
+    assert len(first_page) <= 1
+    assert total_count == len(all_stocks)
 
-        with patch.object(service_instance, 'get_themes_for_stock', return_value=[mock_theme]):
-            result = await service_instance.get_stock("005930")
 
-            assert result.id == "005930"
-            assert result.company_name == "삼성전자"
-            assert result.industry_code == "C2611"
+@pytest.mark.asyncio
+async def test_service_get_stock(test_db_setup):
+    # Given
+    stock_id = test_db_setup["tech_stocks"][0]["stock"].id
 
-    @pytest.mark.asyncio
-    async def test_get_stock_not_found(self, service_instance, mock_async_session):
-        mock_result = AsyncMock()
-        mock_result.first.return_value = None
-        mock_async_session.execute.return_value = mock_result
+    # When
+    stock = await stock_service.get_stock(stock_id=stock_id)
 
-        with pytest.raises(InvalidStockError):
-            await service_instance.get_stock("000000")
+    # Then
+    assert stock.id == stock_id
+    assert stock.company_name == test_db_setup["tech_stocks"][0]["stock"].company_name
+    assert stock.market_type == test_db_setup["tech_stocks"][0]["stock"].market_type
+    assert stock.current_price == float(test_db_setup["tech_stocks"][0]["price"].current_price)
+    assert len(stock.themes) > 0
+
+
+@pytest.mark.asyncio
+async def test_service_get_invalid_stock():
+    with pytest.raises(InvalidStockError):
+        await stock_service.get_stock(stock_id="999999")
+
+
+@pytest.mark.asyncio
+async def test_service_get_themes_for_stock(test_db_setup):
+    # Given
+    stock_id = test_db_setup["tech_stocks"][0]["stock"].id
+
+    # When
+    themes = await stock_service.get_themes_for_stock(stock_id=stock_id)
+
+    # Then
+    assert len(themes) > 0
+    theme = themes[0]
+
+    assert theme.large.code == test_db_setup["tech_industry"]["large"].code
+    assert theme.large.name == test_db_setup["tech_industry"]["large"].name
+    assert theme.medium.code == test_db_setup["tech_industry"]["medium"].code
+    assert theme.medium.name == test_db_setup["tech_industry"]["medium"].name
+    assert theme.small.code == test_db_setup["tech_industry"]["small"].code
+    assert theme.small.name == test_db_setup["tech_industry"]["small"].name
+
+
+@pytest.mark.asyncio
+async def test_service_search_by_large_industry(test_db_setup):
+    # Given
+    large_industry_name = test_db_setup["tech_industry"]["large"].name
+
+    # When
+    stocks, total = await stock_service.search(query=large_industry_name, page=1, size=10)
+
+    # Then
+    assert len(stocks) > 0
+    assert "industry" in stocks[0].match_type
+
+
+@pytest.mark.asyncio
+async def test_service_search_by_medium_industry(test_db_setup):
+    # Given
+    medium_industry_name = test_db_setup["finance_industry"]["medium"].name
+
+    # When
+    stocks, total = await stock_service.search(query=medium_industry_name, page=1, size=10)
+
+    # Then
+    assert len(stocks) > 0
+    assert "industry" in stocks[0].match_type
+
+
+@pytest.mark.asyncio
+async def test_service_search_by_small_industry(test_db_setup):
+    # Given
+    small_industry_name = test_db_setup["finance_industry"]["small"].name
+
+    # When
+    stocks, total = await stock_service.search(query=small_industry_name, page=1, size=10)
+
+    # Then
+    assert len(stocks) > 0
+    assert "industry" in stocks[0].match_type
+
+
+@pytest.mark.asyncio
+async def test_service_search_empty_result():
+    # When
+    stocks, total = await stock_service.search(query="존재하지않는회사", page=1, size=10)
+
+    # Then
+    assert len(stocks) == 0
+    assert total == 0
+
+
+@pytest.mark.asyncio
+async def test_service_search_page_out_of_range(test_db_setup):
+    # Given
+    _, total = await stock_service.search(query="회사", page=1, size=10)
+
+    # When (존재하지 않는 페이지 요청)
+    out_of_range_page = (total // 10) + 10
+    stocks, _ = await stock_service.search(query="회사", page=out_of_range_page, size=10)
+
+    # Then
+    assert len(stocks) == 0
