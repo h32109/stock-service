@@ -9,6 +9,12 @@ from trader.stock.model import (
     StockPriceHistory
 )
 
+from trader.order.model import (
+    Order,
+    OrderHistory,
+    Transaction
+)
+
 
 def get_models() -> t.List[t.Any]:
     return [
@@ -17,5 +23,8 @@ def get_models() -> t.List[t.Any]:
         LargeIndustry,
         MediumIndustry,
         SmallIndustry,
-        StockPriceHistory
+        StockPriceHistory,
+        Order,
+        OrderHistory,
+        Transaction
     ]
