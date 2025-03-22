@@ -10,10 +10,15 @@ class ExceptionErrorCode(str, enum.Enum):
     # stock
     InvalidStockError = "ST00"
 
+    # order
+    InvalidOrderError = "OR00"
+    InsufficientBalanceError = "OR01"
+    InsufficientStockError = "OR02"
+    OrderProcessingError = "OR03"
+
     # user
     UserAlreadyExistsError = "US00"
     UserNotFoundError = "US01"
-    InsufficientBalanceError = "US02"
 
     # auth
     InvalidCredentialsError = "AU00"
@@ -103,6 +108,21 @@ class DatabaseError(BaseCustomException):
     ...
 
 
+class InvalidOrderError(BaseCustomException):
+    """유효하지 않은 주문 예외"""
+    pass
+
+
 class InsufficientBalanceError(BaseCustomException):
-    """잔액이 부족할 때 예외"""
-    ...
+    """잔액 부족 예외"""
+    pass
+
+
+class InsufficientStockError(BaseCustomException):
+    """보유 주식 부족 예외"""
+    pass
+
+
+class OrderProcessingError(BaseCustomException):
+    """주문 처리 중 에러 예외"""
+    pass

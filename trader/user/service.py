@@ -375,7 +375,7 @@ class UserService(UserServiceBase):
                 # 트랜잭션 기록
                 transaction = AccountTransaction(
                     user_id=user_id,
-                    type=TransactionType.DEPOSIT,  # Enum 타입 사용
+                    type=TransactionType.DEPOSIT,
                     amount=amount,
                     balance_after=user.balance,
                     description="Deposit to account"
@@ -434,8 +434,8 @@ class UserService(UserServiceBase):
                 # 트랜잭션 기록
                 transaction = AccountTransaction(
                     user_id=user_id,
-                    type=TransactionType.WITHDRAWAL,  # Enum 타입 사용
-                    amount=-amount,  # 마이너스로 저장
+                    type=TransactionType.WITHDRAWAL,
+                    amount=-amount,
                     balance_after=user.balance,
                     description="Withdrawal from account"
                 )
@@ -519,7 +519,6 @@ class UserService(UserServiceBase):
 
     async def verify_token(self, token: str) -> User:
         try:
-            # 토큰 디코드
             payload = jwt.decode(
                 token,
                 self.config.SECRET_KEY,
