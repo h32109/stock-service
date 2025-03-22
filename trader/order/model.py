@@ -20,8 +20,6 @@ import uuid
 from trader.globals import Base
 
 
-# TODO: User 테이블과 연결(Auth 생기고 나서)
-
 class OrderStatus(enum.Enum):
     INITIAL = "initial"  # 초기 상태
     PENDING = "pending"  # 주문 처리 중
@@ -52,7 +50,7 @@ class Order(Base):
     created_dt = Column(DateTime, nullable=False, server_default=func.now())
     updated_dt = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
 
-    # user = relationship("User", back_populates="orders")
+    user = relationship("User", back_populates="orders")
     stock = relationship("Stock", back_populates="orders")
     order_history = relationship("OrderHistory", back_populates="order")
     transactions = relationship("Transaction", back_populates="order")
@@ -103,7 +101,7 @@ class Transaction(Base):
     created_dt = Column(DateTime, nullable=False, server_default=func.now())
 
     order = relationship("Order", back_populates="transactions")
-    # user = relationship("User")
+    user = relationship("User")
     stock = relationship("Stock")
 
     __table_args__ = (

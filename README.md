@@ -1,6 +1,10 @@
 
 # Stock-service
 
+## 시스템 설계
+https://docs.google.com/document/d/1vjqFi6cl6GLM0W6V_sZaQuIGTlxnmx6wV-aPxnC4YfE/edit?usp=sharing
+
+
 ## 목차
 1. [프로젝트 실행 방법](#프로젝트-실행-방법)
 2. [테스트 실행 방법](#테스트-실행-방법)

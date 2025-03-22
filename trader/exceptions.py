@@ -4,8 +4,25 @@ from fastapi import HTTPException
 
 
 class ExceptionErrorCode(str, enum.Enum):
+    # common
+    DatabaseError = "CO00"
+
     # stock
     InvalidStockError = "ST00"
+
+    # order
+    InvalidOrderError = "OR00"
+    InsufficientBalanceError = "OR01"
+    InsufficientStockError = "OR02"
+    OrderProcessingError = "OR03"
+
+    # user
+    UserAlreadyExistsError = "US00"
+    UserNotFoundError = "US01"
+
+    # auth
+    InvalidCredentialsError = "AU00"
+    PermissionDeniedError = "AU01"
 
 
 class BaseCustomException(Exception):
@@ -62,4 +79,50 @@ class BaseCustomException(Exception):
 
 
 class InvalidStockError(BaseCustomException):
-    """Exception raised when user try to search invalid stock."""
+    """사용자가 존재하지 않는 주식 코드 조회시 예외"""
+    ...
+
+
+class UserAlreadyExistsError(BaseCustomException):
+    """사용자가 이미 존재하는 경우의 예외"""
+    ...
+
+
+class UserNotFoundError(BaseCustomException):
+    """사용자를 찾을 수 없는 경우의 예외"""
+    ...
+
+
+class InvalidCredentialsError(BaseCustomException):
+    """인증 정보가 유효하지 않은 경우의 예외"""
+    ...
+
+
+class PermissionDeniedError(BaseCustomException):
+    """권한이 없는 경우의 예외"""
+    ...
+
+
+class DatabaseError(BaseCustomException):
+    """데이터베이스 오류 예외"""
+    ...
+
+
+class InvalidOrderError(BaseCustomException):
+    """유효하지 않은 주문 예외"""
+    pass
+
+
+class InsufficientBalanceError(BaseCustomException):
+    """잔액 부족 예외"""
+    pass
+
+
+class InsufficientStockError(BaseCustomException):
+    """보유 주식 부족 예외"""
+    pass
+
+
+class OrderProcessingError(BaseCustomException):
+    """주문 처리 중 에러 예외"""
+    pass
