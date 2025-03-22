@@ -5,8 +5,8 @@ from trader import types
 
 
 class Data(pyd.BaseModel):
-    contents: t.Union[
-        t.Optional[types.ObjectType], t.List[types.ObjectType], t.List[str]
+    messages: t.Union[
+        t.Optional[types.ObjectType], t.List[types.ObjectType], t.List[str], t.Dict
     ]
 
     async def chunk(self, chunk_size: int):
@@ -16,7 +16,7 @@ class Data(pyd.BaseModel):
         Args:
             chunk_size:
         Returns:
-             JobData model
+             Data model
         """
         if chunk_size > 0:
             contents = [
