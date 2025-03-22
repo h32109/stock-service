@@ -6,6 +6,7 @@ from fastapi import HTTPException
 class ExceptionErrorCode(str, enum.Enum):
     # common
     DatabaseError = "CO00"
+    MessageQueueError = "CO01"
 
     # stock
     InvalidStockError = "ST00"
@@ -125,4 +126,9 @@ class InsufficientStockError(BaseCustomException):
 
 class OrderProcessingError(BaseCustomException):
     """주문 처리 중 에러 예외"""
+    pass
+
+
+class MessageQueueError(BaseCustomException):
+    """메시지 큐 관련 에러"""
     pass
